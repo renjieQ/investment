@@ -113,6 +113,8 @@ The application fetches real-time financial market data from Stooq API for the f
 
 ---
 
+for win:
+
 初启动项目：
 pip install poetry
 poetry install
@@ -124,3 +126,10 @@ poetry env list
 退出：exit
 
 在虚拟环境中 运行：streamlit run app.py --server.address localhost
+
+---
+
+for mac:
+pip3 install poetry
+poetry install --no-root
+poetry run streamlit run app.py --server.address localhost

@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "repl-nix-workspace"
+name = "makemoney"
 version = "0.1.0"
 authors = ["Citrus <qurenjie@qq.com>"]
 description = "A data analysis and visualization tool using Streamlit."
