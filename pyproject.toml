@@ -1,19 +1,20 @@
+[project]
+name = "makemoney"
+version = "0.1.0"
+description = "A data analysis and visualization tool using Streamlit."
+requires-python = ">=3.11"
+dependencies = [
+    "matplotlib>=3.10.7",
+    "numpy>=2.3.3",
+    "openpyxl>=3.1.5",
+    "pandas>=2.3.3",
+    "plotly>=6.3.1",
+    "scipy>=1.16.2",
+    "streamlit>=1.50.0",
+    "xlsxwriter>=3.2.9",
+]
+
 [tool.poetry]
 name = "makemoney"
 version = "0.1.0"
-authors = ["Citrus <qurenjie@qq.com>"]
-description = "A data analysis and visualization tool using Streamlit."
-license = "MIT"
-readme = "README.md"
 package-mode = false
-
-[tool.poetry.dependencies]
-python = ">=3.11"
-matplotlib = ">=3.10.7"
-numpy = ">=2.3.3"
-openpyxl = ">=3.1.5"
-pandas = ">=2.3.3"
-plotly = ">=6.3.1"
-scipy = ">=1.16.2"
-streamlit = ">=1.50.0"
-xlsxwriter = ">=3.2.9"
