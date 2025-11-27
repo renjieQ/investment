@@ -2,7 +2,7 @@
 
 This is a comprehensive portfolio backtesting and analysis system built with Streamlit. The application provides interactive tools for analyzing investment portfolios consisting of stocks and ETFs (VOO, VEA, QQQ, FNGS, VWO, IAU, BNDX). It enables users to perform backtesting analysis, visualize portfolio performance, optimize asset allocation strategies, analyze risk metrics, and export detailed reports through an intuitive web interface.
 
-## Recent Updates (October 2025)
+## Features
 
 - ✅ Added Excel multi-sheet report download functionality
 - ✅ Implemented comprehensive risk analysis (VaR & CVaR with multiple confidence levels)
@@ -12,10 +12,6 @@ This is a comprehensive portfolio backtesting and analysis system built with Str
 - ✅ Performance optimization: centralized calculation of mean returns and covariance matrix
 - ✅ Added data cache management with manual refresh capability
 - ✅ Enhanced user experience with data update timestamps and detailed metric explanations
-
-# User Preferences
-
-Preferred communication style: Simple, everyday language.
 
 # System Architecture
 
@@ -94,7 +90,7 @@ Preferred communication style: Simple, everyday language.
 
 ## Data Sources
 
-The application fetches real-time financial market data from Stooq API for the following instruments:
+The application fetches real-time financial market data from Stooq API for the following instruments(not only):
 
 - VOO (Vanguard S&P 500 ETF)
 - VEA (Vanguard FTSE Developed Markets ETF)
@@ -113,9 +109,9 @@ The application fetches real-time financial market data from Stooq API for the f
 
 ---
 
-# How to build you app
+# How to build this app
 
 pip install poetry
 poetry install
-poetry env list
+poetry env list (option)
 poetry run streamlit run app.py
