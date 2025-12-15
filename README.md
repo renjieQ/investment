@@ -1,6 +1,6 @@
 # Overview
 
-This is a comprehensive portfolio backtesting and analysis system built with Streamlit. The application provides interactive tools for analyzing investment portfolios consisting of stocks and ETFs (VOO, VEA, QQQ, FNGS, VWO, IAU, BNDX). It enables users to perform backtesting analysis, visualize portfolio performance, optimize asset allocation strategies, analyze risk metrics, and export detailed reports through an intuitive web interface.
+This is a comprehensive portfolio backtesting and analysis system built with Streamlit. The application provides interactive tools for analyzing investment portfolios consisting of stocks and ETFs (VOO, VEA, QQQ, FNGS, VWO, IAU). It enables users to perform backtesting analysis, visualize portfolio performance, optimize asset allocation strategies, analyze risk metrics, and export detailed reports through an intuitive web interface.
 
 ## Features
 
@@ -98,7 +98,6 @@ The application fetches real-time financial market data from Stooq API for the f
 - FNGS (MicroSectors FANG+ ETN)
 - VWO (Vanguard FTSE Emerging Markets ETF)
 - IAU (iShares Gold Trust)
-- BNDX (Vanguard Total International Bond ETF)
 
 **Data Management**:
 
