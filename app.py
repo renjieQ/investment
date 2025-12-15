@@ -30,7 +30,7 @@ st.markdown("---")
 st.sidebar.header("⚙️ 参数设置")
 
 # Stock selection
-stocks = ["VOO", "VEA", "QQQ", "FNGS", "VWO", "IAU", "BNDX"]
+stocks = ["VOO", "VEA", "QQQ", "FNGS", "VWO", "IAU"]
 selected_stocks = st.sidebar.multiselect(
     "选择股票/ETF",
     stocks,
@@ -43,13 +43,13 @@ col1, col2 = st.sidebar.columns(2)
 with col1:
     start_date = st.date_input(
         "开始日期",
-        value=dt.date(2023, 5, 1),
+        value=dt.date(2023, 11, 30),
         help="回测开始日期"
     )
 with col2:
     end_date = st.date_input(
         "结束日期",
-        value=dt.date(2025, 9, 30),
+        value=dt.date(2025, 11, 30),
         help="回测结束日期"
     )
 
@@ -265,7 +265,7 @@ if st.sidebar.button("🚀 开始分析", type="primary"):
                 st.caption(f"📊 数据更新时间：{current_time} | 💾 数据已缓存1小时")
                 
                 # Tab layout
-                tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 单只表现", "🎯 蒙特卡罗优化", "📈 均值-方差优化", "⚖️ 组合对比", "🎲 风险分析"])
+                tab1, tab2, tab3, tab4 = st.tabs(["📊 单只表现", "🎯 蒙特卡罗优化", "📈 均值-方差优化", "🎲 风险分析"])
                 
                 with tab1:
                     st.header("📊 个股表现分析")
@@ -285,7 +285,7 @@ if st.sidebar.button("🚀 开始分析", type="primary"):
                     display_df['Sharpe'] = display_df['Sharpe'].apply(lambda x: f"{x:.2f}")
                     display_df['Max Drawdown'] = display_df['Max Drawdown'].apply(lambda x: f"{x:.2%}")
                     
-                    st.dataframe(display_df, use_container_width=True)
+                    st.dataframe(display_df, width='stretch')
                     
                     # Add download button for individual metrics
                     csv = display_df.to_csv(index=True).encode('utf-8-sig')
@@ -318,7 +318,7 @@ if st.sidebar.button("🚀 开始分析", type="primary"):
                         height=500
                     )
                     
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width='stretch')
                 
                 with tab2:
                     st.header("🎯 蒙特卡罗投资组合优化")
@@ -365,7 +365,7 @@ if st.sidebar.button("🚀 开始分析", type="primary"):
                                 '股票': data.columns,
                                 '权重': [f"{w:.2%}" for w in max_sharpe_weights]
                             })
-                            st.dataframe(weights_df, use_container_width=True, hide_index=True)
+                            st.dataframe(weights_df, width='stretch', hide_index=True)
                         
                         with col2:
                             st.metric("年化收益率", f"{max_sharpe_ret:.2%}")
@@ -409,7 +409,7 @@ if st.sidebar.button("🚀 开始分析", type="primary"):
                             height=500
                         )
                         
-                        st.plotly_chart(fig, use_container_width=True)
+                        st.plotly_chart(fig, width='stretch')
                 
                 with tab3:
                     st.header("📈 均值-方差优化")
@@ -430,7 +430,7 @@ if st.sidebar.button("🚀 开始分析", type="primary"):
                                 '股票': data.columns,
                                 '权重': [f"{w:.2%}" for w in optimal_weights]
                             })
-                            st.dataframe(weights_df, use_container_width=True, hide_index=True)
+                            st.dataframe(weights_df, width='stretch', hide_index=True)
                         
                         with col2:
                             st.metric("年化收益率", f"{opt_ret:.2%}")
@@ -512,87 +512,9 @@ if st.sidebar.button("🚀 开始分析", type="primary"):
                             height=500
                         )
                         
-                        st.plotly_chart(fig, use_container_width=True)
+                        st.plotly_chart(fig, width='stretch')
                 
                 with tab4:
-                    st.header("⚖️ 投资组合 vs 基准对比")
-                    
-                    if "VOO" not in data.columns:
-                        st.warning("需要包含VOO才能进行基准对比")
-                    elif len(data.columns) < 2:
-                        st.warning("需要至少2只股票才能进行投资组合优化")
-                    else:
-                        # Calculate portfolio daily returns using pre-calculated weights
-                        portfolio_daily = (returns * optimal_weights).sum(axis=1)
-                        portfolio_cum = (1 + portfolio_daily).cumprod()
-                        voo_cum = (1 + returns["VOO"]).cumprod()
-                        
-                        # Performance comparison
-                        port_metrics = performance_metrics(portfolio_daily, "最优组合")
-                        voo_metrics = performance_metrics(returns["VOO"], "VOO")
-                        
-                        comparison_df = pd.concat([port_metrics, voo_metrics], axis=1)
-                        
-                        # Format for display
-                        display_comparison = comparison_df.copy()
-                        for col in display_comparison.columns:
-                            if col in display_comparison.index:
-                                continue
-                            display_comparison.loc['CAGR', col] = f"{display_comparison.loc['CAGR', col]:.2%}"
-                            display_comparison.loc['Volatility', col] = f"{display_comparison.loc['Volatility', col]:.2%}"
-                            display_comparison.loc['Sharpe', col] = f"{display_comparison.loc['Sharpe', col]:.2f}"
-                            display_comparison.loc['Max Drawdown', col] = f"{display_comparison.loc['Max Drawdown', col]:.2%}"
-                        
-                        st.subheader("表现对比")
-                        st.dataframe(display_comparison, use_container_width=True)
-                        
-                        # Cumulative returns comparison chart
-                        st.subheader("累计收益对比")
-                        fig = go.Figure()
-                        
-                        fig.add_trace(go.Scatter(
-                            x=portfolio_cum.index,
-                            y=portfolio_cum,
-                            mode='lines',
-                            name='最优夏普比率组合',
-                            line=dict(width=3, color='blue')
-                        ))
-                        
-                        fig.add_trace(go.Scatter(
-                            x=voo_cum.index,
-                            y=voo_cum,
-                            mode='lines',
-                            name='VOO',
-                            line=dict(width=2, dash='dash', color='red')
-                        ))
-                        
-                        fig.update_layout(
-                            title="最优夏普比率组合 vs VOO",
-                            xaxis_title="日期",
-                            yaxis_title="累计收益率",
-                            hovermode='x unified',
-                            height=500
-                        )
-                        
-                        st.plotly_chart(fig, use_container_width=True)
-                        
-                        # Download Excel report
-                        st.subheader("📥 下载分析报告")
-                        excel_data = create_excel_report(
-                            metrics_df, 
-                            optimal_weights, 
-                            data.columns, 
-                            port_metrics, 
-                            voo_metrics
-                        )
-                        st.download_button(
-                            label="下载 Excel 报告",
-                            data=excel_data,
-                            file_name=f"portfolio_analysis_{dt.datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        )
-                
-                with tab5:
                     st.header("🎲 风险分析")
                     
                     if len(data.columns) < 2:
@@ -618,7 +540,7 @@ if st.sidebar.button("🚀 开始分析", type="primary"):
                             })
                         
                         risk_df = pd.DataFrame(risk_metrics)
-                        st.dataframe(risk_df, use_container_width=True, hide_index=True)
+                        st.dataframe(risk_df, width='stretch', hide_index=True)
                         
                         st.info("""
                         **📌 指标说明：**
@@ -661,7 +583,7 @@ if st.sidebar.button("🚀 开始分析", type="primary"):
                             showlegend=False
                         )
                         
-                        st.plotly_chart(fig, use_container_width=True)
+                        st.plotly_chart(fig, width='stretch')
                         
                         # Rolling volatility
                         st.subheader("滚动波动率分析")
@@ -685,7 +607,7 @@ if st.sidebar.button("🚀 开始分析", type="primary"):
                             height=400
                         )
                         
-                        st.plotly_chart(fig, use_container_width=True)
+                        st.plotly_chart(fig, width='stretch')
                         
                         # Individual stock risk contribution
                         st.subheader("个股风险贡献")
@@ -701,7 +623,7 @@ if st.sidebar.button("🚀 开始分析", type="primary"):
                             '风险贡献': [f"{rc:.2%}" for rc in risk_contrib]
                         })
                         
-                        st.dataframe(contrib_df, use_container_width=True, hide_index=True)
+                        st.dataframe(contrib_df, width='stretch', hide_index=True)
                         
                         # Risk contribution pie chart
                         fig = go.Figure(data=[go.Pie(
@@ -715,7 +637,7 @@ if st.sidebar.button("🚀 开始分析", type="primary"):
                             height=400
                         )
                         
-                        st.plotly_chart(fig, use_container_width=True)
+                        st.plotly_chart(fig, width='stretch')
 
 else:
     # Instructions
@@ -753,4 +675,4 @@ else:
         """)
     
     st.markdown("### 🎯 支持的ETF")
-    st.markdown("VOO (Vanguard S&P 500), VEA (Vanguard FTSE Developed Markets), QQQ (Invesco QQQ Trust), FNGS (MicroSectors FANG+), VWO (Vanguard Emerging Markets), IAU (iShares Gold Trust), BNDX (Vanguard Total International Bond)")
+    st.markdown("VOO (Vanguard S&P 500), VEA (Vanguard FTSE Developed Markets), QQQ (Invesco QQQ Trust), FNGS (MicroSectors FANG+), VWO (Vanguard Emerging Markets), IAU (iShares Gold Trust)")
