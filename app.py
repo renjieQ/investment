@@ -311,7 +311,7 @@ if st.sidebar.button("🚀 开始分析", type="primary"):
                         ))
                     
                     fig.update_layout(
-                        title="股票累计表现 (2023-2025)",
+                        title="股票累计表现",
                         xaxis_title="日期",
                         yaxis_title="累计收益率",
                         hovermode='x unified',
