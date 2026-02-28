@@ -1,3 +1,0 @@
-[server]
-folderWatchBlacklist = ["venv", "node_modules", "__pycache__"]
-fileWatcherType = "none"

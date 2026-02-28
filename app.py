@@ -38,6 +38,17 @@ selected_stocks = st.sidebar.multiselect(
     help="选择要分析的股票或ETF"
 )
 
+# Add a text input for multiple custom stock symbols
+custom_stocks = st.sidebar.text_input(
+    "输入其他感兴趣股票代码",
+    value="",
+    help="输入多个自定义的股票代码，例如：AAPL, MSFT, TSLA"
+)
+
+# Split the input by commas and add to the selected stocks
+if custom_stocks:
+    selected_stocks.extend([stock.strip().upper() for stock in custom_stocks.split(",") if stock.strip()])
+
 # Date range selection
 col1, col2 = st.sidebar.columns(2)
 with col1:
@@ -49,7 +60,7 @@ with col1:
 with col2:
     end_date = st.date_input(
         "结束日期",
-        value=dt.date(2025, 11, 30),
+        value=dt.date(2026, 2, 27),
         help="回测结束日期"
     )
 
