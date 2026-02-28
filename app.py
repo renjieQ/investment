@@ -30,7 +30,7 @@ st.markdown("---")
 st.sidebar.header("⚙️ 参数设置")
 
 # Stock selection
-stocks = ["VOO", "VEA", "QQQ", "FNGS", "VWO", "IAU"]
+stocks = ["VOO", "QQQ", "FNGS", "IAU"]
 selected_stocks = st.sidebar.multiselect(
     "选择股票/ETF",
     stocks,
