@@ -30,7 +30,7 @@ st.markdown("---")
 st.sidebar.header("⚙️ 参数设置")
 
 # Stock selection
-stocks = ["VOO", "QQQ", "FNGS", "IAU"]
+stocks = ["VOO", "QQQI", "FNGS", "IAU"]
 selected_stocks = st.sidebar.multiselect(
     "选择股票/ETF",
     stocks,
@@ -60,7 +60,7 @@ with col1:
 with col2:
     end_date = st.date_input(
         "结束日期",
-        value=dt.date(2026, 2, 27),
+        value=dt.date(2026, 4, 13),
         help="回测结束日期"
     )
 
