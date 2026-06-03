@@ -1,13 +1,14 @@
+import json
+import subprocess
 import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 from scipy.optimize import minimize
 import datetime as dt
 from io import BytesIO
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import xlsxwriter
 
 # Set page configuration
@@ -47,7 +48,7 @@ custom_stocks = st.sidebar.text_input(
 
 # Split the input by commas and add to the selected stocks
 if custom_stocks:
-    selected_stocks.extend([stock.strip().upper() for stock in custom_stocks.split(",") if stock.strip()])
+    selected_stocks = selected_stocks + [stock.strip().upper() for stock in custom_stocks.split(",") if stock.strip()]
 
 # Date range selection
 col1, col2 = st.sidebar.columns(2)
@@ -92,32 +93,46 @@ if st.sidebar.button("清除缓存并刷新数据", type="secondary"):
     st.cache_data.clear()
     st.rerun()
 
-# Function to fetch data from Stooq
-@st.cache_data(ttl=3600)  # Cache for 1 hour
+# Function to fetch data from Yahoo Finance via PowerShell
+@st.cache_data(ttl=3600)
 def get_stooq_data(symbol):
-    """Fetch stock data from Stooq"""
     try:
-        url = f"https://stooq.com/q/d/l/?s={symbol.lower()}.us&i=d"
-        df = pd.read_csv(url)
-        df["Date"] = pd.to_datetime(df["Date"])
-        df = df.set_index("Date").sort_index()
+        ps_cmd = f'''
+$h = @{{ "User-Agent" = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" }}
+$r = Invoke-WebRequest -Uri "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?range=5y&interval=1d" -UseBasicParsing -TimeoutSec 15 -Headers $h
+$r.Content
+'''
+        result = subprocess.run(
+            ['powershell', '-NoProfile', '-Command', ps_cmd],
+            capture_output=True, text=True, timeout=20
+        )
+        if result.returncode != 0 or not result.stdout.strip():
+            st.error(f"获取 {symbol} 数据失败: 返回为空")
+            return None
+
+        data = json.loads(result.stdout)
+        chart = data['chart']['result'][0]
+        timestamps = chart['timestamp']
+        quotes = chart['indicators']['quote'][0]
+        adj = chart['indicators'].get('adjclose', [{}])[0].get('adjclose', quotes['close'])
+
+        df = pd.DataFrame({
+            'Date': pd.to_datetime(timestamps, unit='s'),
+            'Open': quotes['open'],
+            'High': quotes['high'],
+            'Low': quotes['low'],
+            'Close': adj,
+            'Volume': quotes['volume'],
+        })
+        df = df.dropna(subset=['Close']).set_index('Date').sort_index()
+        if df.empty:
+            st.error(f"获取 {symbol} 数据为空")
+            return None
         return df[["Open", "High", "Low", "Close", "Volume"]]
     except Exception as e:
         st.error(f"获取 {symbol} 数据失败: {str(e)}")
         return None
 
-# Adjustment function (simplified for demo)
-def auto_adjust_prices(df):
-    """Simple price adjustment (no dividend data available from Stooq)"""
-    if df is None:
-        return None
-    df = df.sort_index(ascending=True)
-    df['Adj_Factor'] = 1.0
-    df['Adj_Close'] = df['Close'] * df['Adj_Factor']
-    df['Adj_Open'] = df['Open'] * df['Adj_Factor']
-    df['Adj_High'] = df['High'] * df['Adj_Factor']
-    df['Adj_Low'] = df['Low'] * df['Adj_Factor']
-    return df
 
 # Performance metrics calculation
 def performance_metrics(ret_series, name="Stock"):
@@ -208,15 +223,6 @@ def create_excel_report(metrics_df, optimal_weights, stock_columns, portfolio_me
             comparison = pd.concat([portfolio_metrics, voo_metrics], axis=1)
             comparison.to_excel(writer, sheet_name='组合vs基准对比')
         
-        # Format workbook
-        workbook = writer.book
-        header_format = workbook.add_format({
-            'bold': True,
-            'bg_color': '#4472C4',
-            'font_color': 'white',
-            'border': 1
-        })
-        
     output.seek(0)
     return output
 
@@ -229,30 +235,33 @@ if st.sidebar.button("🚀 开始分析", type="primary"):
         progress_bar = st.progress(0)
         status_text = st.empty()
         
-        # Fetch data
+        # Fetch data in parallel
         status_text.text("正在下载股票数据...")
         raw_data = {}
         
-        for i, stock in enumerate(selected_stocks):
-            progress_bar.progress((i + 1) / len(selected_stocks))
-            df = get_stooq_data(stock)
-            if df is not None:
-                raw_data[stock] = auto_adjust_prices(df)
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {executor.submit(get_stooq_data, stock): stock for stock in selected_stocks}
+            for i, future in enumerate(as_completed(futures)):
+                progress_bar.progress((i + 1) / len(selected_stocks))
+                stock = futures[future]
+                df = future.result()
+                if df is not None:
+                    raw_data[stock] = df
                 status_text.text(f"已下载 {stock} 数据...")
         
         if not raw_data:
             st.error("未能获取任何股票数据，请检查网络连接或稍后重试")
         else:
-            # Combine adjusted close prices
-            data = pd.DataFrame({s: df['Adj_Close'] for s, df in raw_data.items() if df is not None})
+            # Combine close prices
+            data = pd.DataFrame({s: df['Close'] for s, df in raw_data.items() if df is not None})
             data = data.loc[(data.index >= pd.Timestamp(start_date)) & (data.index <= pd.Timestamp(end_date))]
-            data = data.dropna(axis=1)
+            data = data.dropna(axis=1, how='all')
             
             if data.empty:
                 st.error("所选日期范围内没有可用数据")
             else:
                 # Calculate returns
-                returns = data.pct_change().dropna()
+                returns = data.pct_change().dropna(how='all')
                 
                 # Pre-calculate optimized portfolio weights (used across multiple tabs)
                 mean_returns = returns.mean() * 252
@@ -291,10 +300,10 @@ if st.sidebar.button("🚀 开始分析", type="primary"):
                     
                     # Format the dataframe for display
                     display_df = metrics_df.copy()
-                    display_df['CAGR'] = display_df['CAGR'].apply(lambda x: f"{x:.2%}")
-                    display_df['Volatility'] = display_df['Volatility'].apply(lambda x: f"{x:.2%}")
-                    display_df['Sharpe'] = display_df['Sharpe'].apply(lambda x: f"{x:.2f}")
-                    display_df['Max Drawdown'] = display_df['Max Drawdown'].apply(lambda x: f"{x:.2%}")
+                    display_df['CAGR'] = display_df['CAGR'].map("{:.2%}".format)
+                    display_df['Volatility'] = display_df['Volatility'].map("{:.2%}".format)
+                    display_df['Sharpe'] = display_df['Sharpe'].map("{:.2f}".format)
+                    display_df['Max Drawdown'] = display_df['Max Drawdown'].map("{:.2%}".format)
                     
                     st.dataframe(display_df, width='stretch')
                     
@@ -337,28 +346,16 @@ if st.sidebar.button("🚀 开始分析", type="primary"):
                     if len(data.columns) < 2:
                         st.warning("需要至少2只股票才能进行投资组合优化")
                     else:
-                        status_text2 = st.empty()
-                        status_text2.text("正在进行蒙特卡罗模拟...")
-                        
-                        # Monte Carlo simulation using pre-calculated mean_returns and cov_matrix
+                        # Vectorized Monte Carlo simulation
                         n_assets = len(data.columns)
-                        results = np.zeros((3, n_simulations))
-                        weights_record = []
+                        weights_record = np.random.random((n_simulations, n_assets))
+                        weights_record /= weights_record.sum(axis=1, keepdims=True)
                         
-                        for i in range(n_simulations):
-                            weights = np.random.random(n_assets)
-                            weights /= np.sum(weights)
-                            weights_record.append(weights)
-                            
-                            port_ret = np.dot(mean_returns, weights)
-                            port_vol = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights)))
-                            sharpe = (port_ret - risk_free_rate) / port_vol
-                            
-                            results[0, i] = port_ret
-                            results[1, i] = port_vol
-                            results[2, i] = sharpe
+                        port_returns = weights_record @ mean_returns
+                        port_vols = np.sqrt(np.sum(weights_record * (cov_matrix @ weights_record.T).T, axis=1))
+                        sharpe_ratios = (port_returns - risk_free_rate) / port_vols
                         
-                        status_text2.empty()
+                        results = np.array([port_returns, port_vols, sharpe_ratios])
                         
                         # Find optimal portfolio
                         max_sharpe_idx = np.argmax(results[2])
