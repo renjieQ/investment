@@ -713,9 +713,8 @@ else:
     
     st.markdown("### 🎯 默认股票/ETF")
     st.markdown(
-        "**VOO** (Vanguard S&P 500) · "
+        "**HSBC** (HSBC Holdings plc) · "
         "**QQQI** (NEOS NASDAQ-100 High Income ETF) · "
-        "**FNGS** (MicroSectors FANG+ ETN) · "
         "**IAU** (iShares Gold Trust) · "
         "**1306.T** (NEXT FUNDS TOPIX ETF / 日本)"
     )
