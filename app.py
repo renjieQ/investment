@@ -686,10 +686,11 @@ else:
     with col1:
         st.markdown("""
         **数据获取**
-        - 🌐 实时从 Stooq 获取股票数据
+        - 🌐 实时从 Yahoo Finance 获取股票数据
         - 📅 自定义时间区间分析
         - 🔄 自动复权价格调整
-        
+        - 🔧 已知拆股自动修正
+
         **投资组合优化**
         - 🎯 蒙特卡罗模拟优化
         - 📊 均值-方差优化
@@ -706,8 +707,16 @@ else:
         **风险分析与报告**
         - 🎲 VaR/CVaR 风险价值分析
         - 📊 收益率分布与滚动波动率
+        - 📊 个股风险贡献分析
         - 📥 Excel 分析报告下载
         """)
     
-    st.markdown("### 🎯 支持的ETF")
-    st.markdown("VOO (Vanguard S&P 500), VEA (Vanguard FTSE Developed Markets), QQQ (Invesco QQQ Trust), FNGS (MicroSectors FANG+), VWO (Vanguard Emerging Markets), IAU (iShares Gold Trust)")
+    st.markdown("### 🎯 默认股票/ETF")
+    st.markdown(
+        "**VOO** (Vanguard S&P 500) · "
+        "**QQQI** (Defiance Nasdaq-100 Enhanced Options & 0DTE Income) · "
+        "**FNGS** (MicroSectors FANG+ ETN) · "
+        "**IAU** (iShares Gold Trust) · "
+        "**1306.T** (NEXT FUNDS TOPIX ETF / 日本)"
+    )
+    st.markdown("💡 侧边栏支持输入任意 Yahoo Finance 代码，例如：AAPL, MSFT, 9988.HK, 1306.T")
