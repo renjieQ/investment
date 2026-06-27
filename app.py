@@ -31,7 +31,7 @@ st.markdown("---")
 st.sidebar.header("⚙️ 参数设置")
 
 # Stock selection
-stocks = ["VOO", "QQQI", "FNGS", "IAU"]
+stocks = ["HSBC", "QQQI", "IAU", "1306.T"]
 selected_stocks = st.sidebar.multiselect(
     "选择股票/ETF",
     stocks,
@@ -51,17 +51,19 @@ if custom_stocks:
     selected_stocks = selected_stocks + [stock.strip().upper() for stock in custom_stocks.split(",") if stock.strip()]
 
 # Date range selection
+default_end = dt.date.today() - dt.timedelta(days=1)
+default_start = default_end - dt.timedelta(days=730)
 col1, col2 = st.sidebar.columns(2)
 with col1:
     start_date = st.date_input(
         "开始日期",
-        value=dt.date(2023, 11, 30),
+        value=default_start,
         help="回测开始日期"
     )
 with col2:
     end_date = st.date_input(
         "结束日期",
-        value=dt.date(2026, 4, 13),
+        value=default_end,
         help="回测结束日期"
     )
 
@@ -92,6 +94,12 @@ st.sidebar.subheader("🔄 数据管理")
 if st.sidebar.button("清除缓存并刷新数据", type="secondary"):
     st.cache_data.clear()
     st.rerun()
+
+# Known stock splits: {symbol: (split_date, ratio)}
+# ratio = new_shares_per_old_share (e.g., 10 means 1 old share = 10 new shares)
+KNOWN_SPLITS = {
+    "1306.T": ("2026-03-30", 10),  # NEXT FUNDS TOPIX ETF: 1:10 split on 2026-03-30
+}
 
 # Function to fetch data from Yahoo Finance via PowerShell
 @st.cache_data(ttl=3600)
@@ -128,6 +136,25 @@ $r.Content
         if df.empty:
             st.error(f"获取 {symbol} 数据为空")
             return None
+
+        # Apply manual split adjustment if Yahoo didn't handle it
+        if symbol in KNOWN_SPLITS:
+            split_date_str, ratio = KNOWN_SPLITS[symbol]
+            split_ts = pd.Timestamp(split_date_str)
+            pre_split = df.loc[df.index < split_ts]
+            post_split = df.loc[df.index >= split_ts]
+            if len(pre_split) > 0 and len(post_split) > 0:
+                pre_avg = pre_split['Close'].tail(5).mean()
+                post_avg = post_split['Close'].head(5).mean()
+                # If pre-split prices are much higher, Yahoo didn't adjust for splits
+                if pre_avg > post_avg * 3:
+                    mask = df.index < split_ts
+                    df.loc[mask, 'Open'] /= ratio
+                    df.loc[mask, 'High'] /= ratio
+                    df.loc[mask, 'Low'] /= ratio
+                    df.loc[mask, 'Close'] /= ratio
+                    df.loc[mask, 'Volume'] *= ratio
+
         return df[["Open", "High", "Low", "Close", "Volume"]]
     except Exception as e:
         st.error(f"获取 {symbol} 数据失败: {str(e)}")
